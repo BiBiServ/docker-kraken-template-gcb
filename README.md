@@ -123,7 +123,7 @@ Write a script `kraken_download_db.sh` which will download the Kraken DB
 and untar the file using `tar xvzf minikraken.tgz`. Save the script in the
 `container_scripts` directory. 
 
-*Note:* you need to run `docker build` and `docker push` after each change
+**Note:** you need to run `docker build` and `docker push` after each change
 you made to the container scripts. After that you can test the container
 locally using your `docker_run.sh` wrapper.
 
