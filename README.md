@@ -38,16 +38,12 @@ easier to copy & paste the commands:
 
 ## Kraken Docker Image
 
-The Dockerfile includes all information about the Docker image.
+The `Dockerfile` includes all information about the Docker image.
 Place scripts you want to have accessible in the Docker image
 into the `container_scripts` directory. These scripts will be
 called to download the database to the hosts and run the analyses.
 
-```####
-# Docker kraken pipeline
-#
-####
-
+```
 FROM bibiserv/gcb-ubuntu
 
 # the following required packages from the base ubuntu installation
@@ -85,6 +81,27 @@ you need to push the image to DockerHub:
     docker push $DOCKER_USERNAME/kraken-docker
 
 ## Running Kraken containers on the cluster nodes
+
+Let's start with a wrapper for the `docker run` command. 
+This will make it easier to define the environment
+of your cluster when running your container. We will call a 
+`COMMAND` in the container using the following script. 
+At the same time, we will define which `SCRATCHDIR` (local disk) 
+and `SPOOLDIR` (NFS shared between the master and all slaves) 
+of the host will be mounted to the container. 
+
+    docker_run.sh CONTAINER SCRATCHDIR SPOOLDIR COMMAND
+
+The `docker run` command inside the script should like
+similar to this template:
+
+    sudo docker pull $CONTAINER
+    sudo docker run \
+        -e "NSLOTS=$NSLOTS" \
+        -v $SCRATCHDIR:/vol/scratch \
+        -v $SPOOLDIR:/vol/spool \
+        $CONTAINER \
+        $COMMAND
 
 ### Download Kraken Database
 
