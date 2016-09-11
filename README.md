@@ -92,28 +92,51 @@ of the host will be mounted to the container.
 
     docker_run.sh CONTAINER SCRATCHDIR SPOOLDIR COMMAND
 
-The `docker run` command inside the script should like
+The `docker run` command inside the script should look
 similar to this template:
 
-    sudo docker pull $CONTAINER
-    sudo docker run \
+    docker pull CONTAINER
+    docker run \
         -e "NSLOTS=$NSLOTS" \
-        -v $SCRATCHDIR:/vol/scratch \
-        -v $SPOOLDIR:/vol/spool \
-        $CONTAINER \
-        $COMMAND
+        -v SCRATCHDIR:/path/inside/container/to/scratchdir \
+        -v SPOOLDIR:/path/inside/container/to/spooldir \
+        CONTAINER \
+        COMMAND
+
+Edit the `docker_run.sh` script in the `scripts` folder and define
+the mount points inside your container.
 
 ### Download Kraken Database
 
+Now we can work on the Kraken pipeline which will run inside
+the container.
+
 First we need to download the Kraken database to each of
-the hosts. We can use the SGE to distribute the jobs on the
-cluster. The `-pe` option ensures, that we only download the 
+the hosts. You need to work on the `kraken_download_db.sh`
+file. The Kraken Database is located in the SWIFT object store container `gcb`. 
+To download it using the `swift` client, you simply call:
+
+    swift -U gcb:swift -K ssbBisjNkXmwgSXbvyAN6CtQJJcW2moMHEAdQVN0 -A http://swift:7480/auth \
+    download gcb minikraken.tgz --output <CONTAINER SCRATCHDIR>/minikraken.tgz
+
+Write a script `kraken_download_db.sh` which will download the Kraken DB
+and untar the file using `tar xvzf minikraken.tgz`. Save the script in the
+`container_scripts` directory. 
+
+*Note:* you need to run `docker build` and `docker push` after each change
+you made to the container scripts. After that you can test the container
+locally using your `docker_run.sh` wrapper.
+
+If you want to distribute the jobs on the
+cluster, use `qsub` to sumit the job to the SGE queue.
+The `-pe` option ensures, that we only download the 
 database **once on each host**:
 
     qsub -N DB_Download -t 1-$NUM_NODES -pe multislot $NUM_CORES -cwd \
     /vol/spool/docker-kraken-gcb/scripts/docker_run.sh \
     $DOCKER_USERNAME/kraken-docker $HOST_SCRATCHDIR $HOST_SPOOLDIR \
     /vol/scripts/kraken_download_db.sh
+
 
 ### Run Kraken Analysis
 
