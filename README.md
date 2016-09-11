@@ -1,4 +1,4 @@
-# docker-kraken-gcb
+# Docker Kraken Template
 
 ## Start BiBiGrid Cluster
 First, we need to start a bibigrid cluster in the cloud. If you have
@@ -16,14 +16,14 @@ Login to master node (see BiBiGrid output how to set environment variables):
 
 ## Download Github repository
 Now your are logged on to the master node of your cloud-based SGE
-cluster! We will clone the docker-kraken-gcb github repository to
+cluster! We will clone the docker-kraken-template-gcb github repository to
 the master node and continue working on the master node.
 
 Clone the Docker Kraken Pipeline from Github:
 
     cd /vol/spool
-    git clone https://github.com/bibiserv/docker-kraken-gcb.git
-    cd docker-kraken-gcb
+    git clone https://github.com/BiBiServ/docker-kraken-template-gcb.git
+    cd docker-kraken-template-gcb
 
 ## Set environment variables
 The command line calls on this page assume that you have several
@@ -39,9 +39,34 @@ easier to copy & paste the commands:
 ## Kraken Docker Image
 
 The Dockerfile includes all information about the Docker image.
-Place scripts you want to have accessible in the image
-into the container_scripts directory. These scripts will be
-called to donwload the database to the hosts and run the analyses.
+Place scripts you want to have accessible in the Docker image
+into the `container_scripts` directory. These scripts will be
+called to download the database to the hosts and run the analyses.
+
+```####
+# Docker kraken pipeline
+#
+####
+
+FROM bibiserv/gcb-ubuntu
+
+# the following required packages from the base ubuntu installation
+# have already been installed in the bibiserv/ubuntu-gcb image
+# to avoid high download traffic during the tutorial
+
+#RUN apt-get update && \
+#    apt-get install -y -f perl-modules libgomp1 python-swiftclient && \
+#    rm -rf /var/lib/apt/lists/*
+
+# create directories where the host file system can be mounted
+RUN mkdir /vol
+
+# copy the required scripts that run the pipeline from your machine to the
+# Docker image and make them executable
+ADD ./kraken/ /vol/kraken/
+RUN chmod 755 /vol/kraken/*
+ADD ./container_scripts/ /vol/scripts/
+```
 
 ### Login to DockerHub
 
