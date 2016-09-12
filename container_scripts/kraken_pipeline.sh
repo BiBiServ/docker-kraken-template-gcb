@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SCRATCHDIR=/vol/scratch
-SPOOLDIR=/vol/spool
+SCRATCHDIR=<SCRATCHDIR>
+SPOOLDIR=<SPOOLDIR>
 
 if [ $# -ne 2 ]
   then
@@ -12,9 +12,6 @@ if [ $# -ne 2 ]
     echo
     exit 0;
 fi
-
-INFILE=$1
-OUTNAME=$2
 
 PATH=$PATH:/vol/scripts:/vol/krona/bin
 
