@@ -33,9 +33,8 @@ echo "kraken done."
 
 ## create reports
 echo "creating Kraken report"
-echo "/vol/kraken/kraken-report --db $SCRATCHDIR $OUTFILE > $REPORTFILE"
-/vol/kraken/kraken-report --db $SCRATCHDIR $OUTFILE > $REPORTFILE
+
+/vol/kraken/kraken-report --db <SCRATCHDIR> <SPOOLDIR/OUTFILE> > <REPORTFILE>
+
 echo "Kraken report done"
 
-#rm -v $OUTFILE
-rm -v $SCRATCHDIR/$INFILE
