@@ -28,12 +28,23 @@ Clone the Docker Kraken Pipeline from Github:
 ## Set environment variables
 The command line calls on this page assume that you have several
 environment variables set for your cloud environment. This makes it
-easier to copy & paste the commands:
+easier to copy & paste the commands.
+
+### Bielefeld Setup:
 
     export NUM_NODES=4
     export NUM_CORES=4
     export HOST_SPOOLDIR=/vol/spool
     export HOST_SCRATCHDIR=/vol/scratch
+    export DOCKER_USERNAME=<DOCKERHUB ACCOUNT NAME>
+
+### Giessen Setup:
+
+    export NUM_NODES=4
+    export NUM_CORES=4
+    export HOST_DBDIR=/vol/krakendb
+    export HOST_DATADIR=/vol/data
+    export HOST_SPOOLDIR=/vol/spool
     export DOCKER_USERNAME=<DOCKERHUB ACCOUNT NAME>
 
 ## Kraken Docker Image
@@ -82,34 +93,33 @@ you need to push the image to DockerHub:
 
 ## Running Kraken containers on the cluster nodes
 
-Let's start with a wrapper for the `docker run` command. 
-This will make it easier to define the environment
-of your cluster when running your container. We will call a 
-`COMMAND` in the container using the following script. 
-At the same time, we will define which `SCRATCHDIR` (local disk) 
-and `SPOOLDIR` (NFS shared between the master and all slaves) 
-of the host will be mounted to the container. 
+Let's start by creating wrapper script for the `docker run` command to make it easier for us to define the environment of the cluster when running a container. The script will call a `COMMAND` while simultaneously defining which `SCRATCHDIR` (local disk) and SPOOLDIR (NFS shared between the master and all slaves) of the host will be mounted to the container.
+
+### Bielefeld Setup
 
     docker_run.sh CONTAINER SCRATCHDIR SPOOLDIR COMMAND
 
-The `docker run` command inside the script should look
-similar to this template:
+### Giessen Setup
 
-    docker pull CONTAINER
-    docker run \
-        -e "NSLOTS=$NSLOTS" \
-        -v SCRATCHDIR:/path/inside/container/to/scratchdir \
-        -v SPOOLDIR:/path/inside/container/to/spooldir \
-        CONTAINER \
-        COMMAND
+    docker_run.sh CONTAINER DBDIR DATADIR SPOOLDIR COMMAND
+
+The `docker run` command inside the script should look
+like this (add mounts, container and command):
+
+    docker run -e "NSLOTS=$NSLOTS" ....
 
 Edit the `docker_run.sh` script in the `scripts` folder and define
 the mount points inside your container.
 
 ### Download Kraken Database
 
+**Note:** Donwloading the database to the local `SCRATCHDIR` is
+only necessary in the Bielefeld Setup. In the Giessen Setup, the
+database and data are provided via volumes and already mounted
+to the cluster nodes during startup.
+
 Now we can work on the Kraken pipeline which will run inside
-the container.
+the container. 
 
 First we need to download the Kraken database to each of
 the hosts. You need to work on the `kraken_download_db.sh`
@@ -119,18 +129,21 @@ To download it using the `swift` client, you simply call:
     swift -U gcb:swift -K ssbBisjNkXmwgSXbvyAN6CtQJJcW2moMHEAdQVN0 -A http://swift:7480/auth \
     download gcb minikraken.tgz --output <CONTAINER SCRATCHDIR>/minikraken.tgz
 
-Write a script `kraken_download_db.sh` which will download the Kraken DB
-and untar the file using `tar xvzf minikraken.tgz`. Save the script in the
-`container_scripts` directory. 
+Write a script `kraken_download_db.sh` which will download the Kraken DB to the 
+container-local scratch disk. Untar the file using `tar xvzf minikraken.tgz`. 
+Save the script in the `container_scripts` directory. 
 
 **Note:** you need to run `docker build` and `docker push` after each change
-you made to the container scripts. After that you can test the container
+you made to the container scripts. If you start a remote job, make sure you pull
+the new version of the container. You can test the container
 locally using your `docker_run.sh` wrapper.
 
 If you want to distribute the jobs on the
 cluster, use `qsub` to sumit the job to the SGE queue.
 The `-pe` option ensures, that we only download the 
-database **once on each host**:
+database **once on each host**
+
+#### Bielefeld Setup:
 
     qsub -N DB_Download -t 1-$NUM_NODES -pe multislot $NUM_CORES -cwd \
     /vol/spool/docker-kraken-gcb/scripts/docker_run.sh \
@@ -140,16 +153,46 @@ database **once on each host**:
 
 ### Run Kraken Analysis
 
+Next, we need to write a wrapper script for the kraken call. In the Bielefeld
+setup you need to download the FASTQ file from SWIFT first:
+
+    swift -U gcb:swift -K ssbBisjNkXmwgSXbvyAN6CtQJJcW2moMHEAdQVN0 \
+    -A http://swift:7480/auth download gcb INFILE --output <SCRATCHDIR/INFILE>
+
+In the Giessen Setup the FASTQ is already mounted to the host `HOST_DATADIR`.
+
+**Note:** The list of input file names can be found in `samples.txt`.
+
+Now you can run Kraken on the `INFILE`:
+
+    /vol/kraken/kraken --preload --threads $NSLOTS --db <PATH TO KRAKEN DB> \
+    --fastq-input --gzip-compressed --output <SPOOLDIR/OUTFILE> <INFILE>
+
+**Note:** Every time you make changes to your script, to need to build and push your Docker container
+before testing it using the `docker_run.sh` wrapper.
+
 Start the pipeline for just one input file:
+
+#### Bielefeld Setup:
 
     qsub -N kraken_SRR935726 -pe multislot $NUM_CORES -cwd \
     /vol/spool/docker-kraken-gcb/scripts/docker_run.sh \
     $DOCKER_USERNAME/kraken-docker $HOST_SCRATCHDIR $HOST_SPOOLDIR \
     "/vol/scripts/kraken_pipeline.sh SRR935726.fastq.gz SRR935726"
 
+#### Giessen Setup:
+
+    qsub -N kraken_SRR935726 -pe multislot $NUM_CORES -cwd \
+    /vol/spool/docker-kraken-gcb/scripts/docker_run.sh \
+    $DOCKER_USERNAME/kraken-docker $HOST_DBDIR $HOST_DATADIR $HOST_SPOOLDIR \
+    "/vol/scripts/kraken_pipeline.sh SRR935726.fastq.gz SRR935726"
+
+
 You will find the output files in `/vol/spool`.
 
 If your pipeline is working, analyze all FASTQ files:
+
+#### Bielefeld Setup:
 
     for i in `cat samples.txt | sed 's/.fastq.gz//g'`
     do 
@@ -159,6 +202,17 @@ If your pipeline is working, analyze all FASTQ files:
     "/vol/scripts/kraken_pipeline.sh $i.fastq.gz $i"
     done
     
+#### Giessen Setup:
+
+    for i in `cat samples.txt | sed 's/.fastq.gz//g'`
+    do 
+    qsub -N kraken_$i -pe multislot $NUM_CORES -cwd \
+    /vol/spool/docker-kraken-gcb/scripts/docker_run.sh \
+    $DOCKER_USERNAME/kraken-docker $HOST_DBDIR $HOST_DATADIR $HOST_SPOOLDIR \
+    "/vol/scripts/kraken_pipeline.sh $i.fastq.gz $i"
+    done
+
+
 ### Generate Krona plot
 
     cd /vol/spool
