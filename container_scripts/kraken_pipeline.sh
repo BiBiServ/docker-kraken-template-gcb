@@ -15,20 +15,20 @@ fi
 
 PATH=$PATH:/vol/scripts:/vol/krona/bin
 
-cd $SCRATCHDIR
 echo "Downloading FASTQ File to $SCRATCHDIR..."
-swift -U gcb:swift -K ssbBisjNkXmwgSXbvyAN6CtQJJcW2moMHEAdQVN0 -A http://swift:7480/auth download gcb $INFILE --output $SCRATCHDIR/$INFILE
+
+download FASTQ file here...
+
 echo "Done downloading FASTQ file."
 
-cd $SPOOLDIR
-
-OUTFILE="$SPOOLDIR/$OUTNAME.out"
-REPORTFILE="$SPOOLDIR/$OUTNAME.report"
+OUTFILE=
+REPORTFILE=
 
 ## run kraken
 echo "running kraken:"
-echo "/vol/kraken/kraken --preload --db $SCRATCHDIR --threads $NSLOTS --fastq-input --gzip-compressed --output $OUTFILE $SCRATCHDIR/$INFILE"
-/vol/kraken/kraken --preload --db $SCRATCHDIR --threads $NSLOTS --fastq-input --gzip-compressed --output $OUTFILE $SCRATCHDIR/$INFILE
+
+/vol/kraken/kraken --preload --threads $NSLOTS --db <PATH TO KRAKEN DB> --fastq-input --gzip-compressed --output <SPOOLDIR/OUTFILE> <INFILE>
+
 echo "kraken done."
 
 ## create reports
