@@ -42,8 +42,8 @@ easier to copy & paste the commands.
 
     export NUM_NODES=4
     export NUM_CORES=4
-    export HOST_DBDIR=/vol/krakendb
-    export HOST_DATADIR=/vol/data
+    export HOST_DBDIR=/volume/krakendb
+    export HOST_DATADIR=/volume/data
     export HOST_SPOOLDIR=/vol/spool
     export DOCKER_USERNAME=<DOCKERHUB ACCOUNT NAME>
 
