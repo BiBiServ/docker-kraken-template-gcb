@@ -10,5 +10,5 @@ if [ $# -ne 4 ]
     exit 0;
 fi
 
-docker run -e "NSLOTS=$NSLOTS" ....
+docker run -e "NSLOTS=$NSLOTS" -v <HOSTDIR>:<CONTAINERDIR> -v ....
 
