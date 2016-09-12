@@ -10,15 +10,5 @@ if [ $# -ne 4 ]
     exit 0;
 fi
 
-CONTAINER=$1
-SCRATCHDIR=$2
-SPOOLDIR=$3
-COMMAND=$4
+docker run -e "NSLOTS=$NSLOTS" ....
 
-sudo docker pull $CONTAINER
-sudo docker run \
-    -e "NSLOTS=$NSLOTS" \
-    -v $SCRATCHDIR:/path/inside/container/to/scratchdir \
-    -v $SPOOLDIR:/path/inside/container/to/spooldir \
-    $CONTAINER \
-    $COMMAND
